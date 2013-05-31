@@ -1051,7 +1051,7 @@ void lcd_buzz(long duration, uint16_t freq)
 
 bool lcd_clicked() 
 { 
-  return LCD_CLICKED;
+  return LCD_CLICKED || (buttons & EN_A);
 }
 #endif//ULTIPANEL
 
