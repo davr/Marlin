@@ -14,7 +14,7 @@
 
 // LCD Menu Messages
 
-	#define WELCOME_MSG "Printer Ready."
+	#define WELCOME_MSG "Series 1"
 	#define MSG_SD_INSERTED "Card inserted"
 	#define MSG_SD_REMOVED "Card removed"
 	#define MSG_MAIN " Main \003"
@@ -113,9 +113,9 @@
 	#define MSG_HEATING_COMPLETE "Heating done."
 	#define MSG_BED_HEATING "Bed Heating."
 	#define MSG_BED_DONE "Bed done."
-	#define MSG_M115_REPORT "FIRMWARE_NAME:Marlin V1; Sprinter/grbl mashup for gen6 FIRMWARE_URL:http://www.mendel-parts.com PROTOCOL_VERSION:1.0 MACHINE_TYPE:Mendel EXTRUDER_COUNT:1\n"
+	#define MSG_M115_REPORT "FIRMWARE:Marlin V1 for Series 1 www.typeamachines.com EXTRUDER COUNT:1"
 	#define MSG_COUNT_X " Count X:"
-	#define MSG_ERR_KILLED "Printer halted. kill() called !!"
+	#define MSG_ERR_KILLED "Emergency Stop Called! Check temperature sensors"
 	#define MSG_RESEND "Resend:"
 	#define MSG_UNKNOWN_COMMAND "Unknown command:\""
 	#define MSG_ACTIVE_EXTRUDER "Active Extruder: "
@@ -145,7 +145,7 @@
 
 	#define MSG_STEPPER_TO_HIGH "Steprate to high : "
 	#define MSG_ENDSTOPS_HIT "endstops hit: "
-	#define MSG_ERR_COLD_EXTRUDE_STOP " cold extrusion prevented"
+	#define MSG_ERR_COLD_EXTRUDE_STOP " extruder temp too low!"
 	#define MSG_ERR_LONG_EXTRUDE_STOP " too long extrusion prevented"
 
 #endif
