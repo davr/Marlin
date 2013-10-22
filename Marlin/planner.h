@@ -26,6 +26,10 @@
 
 #include "Marlin.h"
 
+#ifdef ENABLE_AUTO_BED_LEVELING
+#include "vector_3.h"
+#endif // ENABLE_AUTO_BED_LEVELING
+
 // This struct is used when buffering the setup for each linear movement "nominal" values are as specified in 
 // the source g-code and may never actually be reached if acceleration management is active.
 typedef struct {
@@ -45,10 +49,10 @@ typedef struct {
   #endif
 
   // Fields used by the motion planner to manage acceleration
-//  float speed_x, speed_y, speed_z, speed_e;        // Nominal mm/minute for each axis
-  float nominal_speed;                               // The nominal speed for this block in mm/min  
-  float entry_speed;                                 // Entry speed at previous-current junction in mm/min
-  float max_entry_speed;                             // Maximum allowable junction entry speed in mm/min
+//  float speed_x, speed_y, speed_z, speed_e;        // Nominal mm/sec for each axis
+  float nominal_speed;                               // The nominal speed for this block in mm/sec 
+  float entry_speed;                                 // Entry speed at previous-current junction in mm/sec
+  float max_entry_speed;                             // Maximum allowable junction entry speed in mm/sec
   float millimeters;                                 // The total travel of this block in mm
   float acceleration;                                // acceleration mm/sec^2
   unsigned char recalculate_flag;                    // Planner flag to recalculate trapezoids on entry junction
@@ -60,18 +64,40 @@ typedef struct {
   unsigned long final_rate;                          // The minimal rate at exit
   unsigned long acceleration_st;                     // acceleration steps/sec^2
   unsigned long fan_speed;
+  #ifdef BARICUDA
+  unsigned long valve_pressure;
+  unsigned long e_to_p_pressure;
+  #endif
   volatile char busy;
 } block_t;
+
+#ifdef ENABLE_AUTO_BED_LEVELING
+// this holds the required transform to compensate for bed level
+extern matrix_3x3 plan_bed_level_matrix;
+#endif // #ifdef ENABLE_AUTO_BED_LEVELING
 
 // Initialize the motion plan subsystem      
 void plan_init();
 
 // Add a new linear movement to the buffer. x, y and z is the signed, absolute target position in 
 // millimaters. Feed rate specifies the speed of the motion.
+
+#ifdef ENABLE_AUTO_BED_LEVELING
+void plan_buffer_line(float x, float y, float z, const float &e, float feed_rate, const uint8_t &extruder);
+
+// Get the position applying the bed level matrix if enabled
+vector_3 plan_get_position();
+#else
 void plan_buffer_line(const float &x, const float &y, const float &z, const float &e, float feed_rate, const uint8_t &extruder);
+#endif // ENABLE_AUTO_BED_LEVELING
 
 // Set position. Used for G92 instructions.
+#ifdef ENABLE_AUTO_BED_LEVELING
+void plan_set_position(float x, float y, float z, const float &e);
+#else
 void plan_set_position(const float &x, const float &y, const float &z, const float &e);
+#endif // ENABLE_AUTO_BED_LEVELING
+
 void plan_set_e_position(const float &e);
 
 
@@ -135,5 +161,9 @@ FORCE_INLINE bool blocks_queued()
     return true;
 }
 
-void allow_cold_extrudes(bool allow);
+#ifdef PREVENT_DANGEROUS_EXTRUDE
+void set_extrude_min_temp(float temp);
+#endif
+
+void reset_acceleration_rates();
 #endif

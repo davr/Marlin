@@ -1,26 +1,27 @@
 # Sprinter Arduino Project Makefile
-# 
+#
 # Makefile Based on:
 # Arduino 0011 Makefile
 # Arduino adaptation by mellis, eighthave, oli.keller
+# Marlin adaption by Daid
 #
 # This has been tested with Arduino 0022.
-# 
+#
 # This makefile allows you to build sketches from the command line
 # without the Arduino environment (or Java).
 #
 # Detailed instructions for using the makefile:
 #
-#  1. Modify the line containg "INSTALL_DIR" to point to the directory that
+#  1. Modify the line containg "ARDUINO_INSTALL_DIR" to point to the directory that
 #     contains the Arduino installation (for example, under Mac OS X, this
 #     might be /Applications/arduino-0012).
 #
-#  2. Modify the line containing "PORT" to refer to the filename
+#  2. Modify the line containing "UPLOAD_PORT" to refer to the filename
 #     representing the USB or serial connection to your Arduino board
-#     (e.g. PORT = /dev/tty.USB0).  If the exact name of this file
-#     changes, you can use * as a wildcard (e.g. PORT = /dev/tty.usb*).
+#     (e.g. UPLOAD_PORT = /dev/tty.USB0).  If the exact name of this file
+#     changes, you can use * as a wildcard (e.g. UPLOAD_PORT = /dev/tty.usb*).
 #
-#  3. Set the line containing "MCU" to match your board's processor. 
+#  3. Set the line containing "MCU" to match your board's processor.
 #     Older one's are atmega8 based, newer ones like Arduino Mini, Bluetooth
 #     or Diecimila have the atmega168.  If you're using a LilyPad Arduino,
 #     change F_CPU to 8000000. If you are using Gen7 electronics, you
@@ -32,42 +33,162 @@
 #  5. Type "make upload", reset your Arduino board, and press enter to
 #     upload your program to the Arduino board.
 #
-# $Id$
+# Note that all settings are set with ?=, this means you can override them
+# from the commandline with "make HARDWARE_MOTHERBOARD=71" for example
 
-#For "old" Arduino Mega
-#MCU = atmega1280
-#For Arduino Mega2560
-#MCU = atmega2560
-#For Sanguinololu
-MCU = atmega644p 
+# This defined the board you are compiling for (see Configuration.h for the options)
+HARDWARE_MOTHERBOARD ?= 11
 
-# Here you select "arduino", "Sanguino", "Gen7", ...
-HARDWARE_VARIANT 		= Sanguino
-# This defined the board you are compiling for
-HARDWARE_MOTHERBOARD	= 91
+# Arduino source install directory, and version number
+ARDUINO_INSTALL_DIR  ?= ../../arduino-0022
+ARDUINO_VERSION      ?= 22
 
-# Arduino source install directory
-INSTALL_DIR = ../../arduino-0022
+# You can optionally set a path to the avr-gcc tools. Requires a trailing slash. (ex: /usr/local/avr-gcc/bin)
+AVR_TOOLS_PATH ?=
+
+#Programmer configuration
+UPLOAD_RATE        ?= 115200
+AVRDUDE_PROGRAMMER ?= arduino
+UPLOAD_PORT        ?= /dev/arduino
+
+#Directory used to build files in, contains all the build files, from object files to the final hex file.
+BUILD_DIR          ?= applet
+
+# This defines whether Liquid_TWI2 support will be built
+LIQUID_TWI2 ?= 0
+
+############################################################################
+# Below here nothing should be changed...
+
+# Here the Arduino variant is selected by the board type
+# HARDWARE_VARIANT = "arduino", "Sanguino", "Gen7", ...
+# MCU = "atmega1280", "Mega2560", "atmega2560", "atmega644p", ...
+
+#Gen7
+ifeq ($(HARDWARE_MOTHERBOARD),10)
+HARDWARE_VARIANT ?= Gen7
+MCU              ?= atmega644
+F_CPU            ?= 20000000
+else ifeq  ($(HARDWARE_MOTHERBOARD),11)
+HARDWARE_VARIANT ?= Gen7
+MCU              ?= atmega644p
+F_CPU            ?= 20000000
+else ifeq  ($(HARDWARE_MOTHERBOARD),12)
+HARDWARE_VARIANT ?= Gen7
+MCU              ?= atmega644p
+F_CPU            ?= 20000000
+else ifeq  ($(HARDWARE_MOTHERBOARD),13)
+HARDWARE_VARIANT ?= Gen7
+MCU              ?= atmega1284p
+F_CPU            ?= 20000000
+
+#RAMPS
+else ifeq  ($(HARDWARE_MOTHERBOARD),3)
+HARDWARE_VARIANT ?= arduino
+MCU              ?= atmega2560
+else ifeq  ($(HARDWARE_MOTHERBOARD),33)
+HARDWARE_VARIANT ?= arduino
+MCU              ?= atmega2560
+else ifeq  ($(HARDWARE_MOTHERBOARD),34)
+HARDWARE_VARIANT ?= arduino
+MCU              ?= atmega2560
+
+#Duemilanove w/ ATMega328P pin assignment
+else ifeq  ($(HARDWARE_MOTHERBOARD),4)
+HARDWARE_VARIANT ?= arduino
+HARDWARE_SUB_VARIANT ?= standard
+MCU              ?= atmega328p
+
+#Gen6
+else ifeq  ($(HARDWARE_MOTHERBOARD),5)
+HARDWARE_VARIANT ?= Gen6
+MCU              ?= atmega644p
+else ifeq  ($(HARDWARE_MOTHERBOARD),51)
+HARDWARE_VARIANT ?= Gen6
+MCU              ?= atmega644p
+
+#Sanguinololu
+else ifeq  ($(HARDWARE_MOTHERBOARD),6)
+HARDWARE_VARIANT ?= Sanguino
+MCU              ?= atmega644p
+else ifeq  ($(HARDWARE_MOTHERBOARD),62)
+HARDWARE_VARIANT ?= Sanguino
+MCU              ?= atmega644p
+else ifeq  ($(HARDWARE_MOTHERBOARD),63)
+HARDWARE_VARIANT ?= Sanguino
+MCU              ?= atmega644p
+else ifeq  ($(HARDWARE_MOTHERBOARD),65)
+HARDWARE_VARIANT ?= Sanguino
+MCU              ?= atmega1284p
+else ifeq  ($(HARDWARE_MOTHERBOARD),66)
+HARDWARE_VARIANT ?= Sanguino
+MCU              ?= atmega1284p
+
+#Ultimaker
+else ifeq  ($(HARDWARE_MOTHERBOARD),7)
+HARDWARE_VARIANT ?= arduino
+MCU              ?= atmega2560
+else ifeq  ($(HARDWARE_MOTHERBOARD),71)
+HARDWARE_VARIANT ?= arduino
+MCU              ?= atmega1280
+
+#Teensylu
+else ifeq  ($(HARDWARE_MOTHERBOARD),8)
+HARDWARE_VARIANT ?= Teensy
+MCU              ?= at90usb1286
+else ifeq  ($(HARDWARE_MOTHERBOARD),81)
+HARDWARE_VARIANT ?= Teensy
+MCU              ?= at90usb1286
+else ifeq  ($(HARDWARE_MOTHERBOARD),82)
+HARDWARE_VARIANT ?= Teensy
+MCU              ?= at90usb646
+
+#Gen3+
+else ifeq  ($(HARDWARE_MOTHERBOARD),9)
+HARDWARE_VARIANT ?= Sanguino
+MCU              ?= atmega644p
+
+#Megatronics
+else ifeq  ($(HARDWARE_MOTHERBOARD),70)
+HARDWARE_VARIANT ?= arduino
+MCU              ?= atmega2560
+
+#Alpha OMCA board
+else ifeq  ($(HARDWARE_MOTHERBOARD),90)
+HARDWARE_VARIANT ?= SanguinoA
+MCU              ?= atmega644
+
+#Final OMCA board
+else ifeq  ($(HARDWARE_MOTHERBOARD),91)
+HARDWARE_VARIANT ?= Sanguino
+MCU              ?= atmega644p
+
+#Rambo
+else ifeq  ($(HARDWARE_MOTHERBOARD),301)
+HARDWARE_VARIANT ?= arduino
+MCU              ?= atmega2560
+
+endif
+
+# Be sure to regenerate speed_lookuptable.h with create_speed_lookuptable.py
+# if you are setting this to something other than 16MHz
+# Set to 16Mhz if not yet set.
+F_CPU ?= 16000000
 
 # Arduino containd the main source code for the Arduino
 # Libraries, the "hardware variant" are for boards
 # that derives from that, and their source are present in
 # the main Marlin source directory
-ARDUINO = $(INSTALL_DIR)/hardware/arduino/cores/arduino
-
-ifeq (${HARDWARE_VARIANT}, arduino)
-HARDWARE_SRC= $(ARDUINO)
+ifeq ($(HARDWARE_VARIANT), arduino)
+HARDWARE_DIR = $(ARDUINO_INSTALL_DIR)/hardware
 else
-HARDWARE_SRC= $(HARDWARE_VARIANT)/cores/arduino
+ifeq ($(shell [ $(ARDUINO_VERSION) -ge 100 ] && echo true), true)
+HARDWARE_DIR = ../ArduinoAddons/Arduino_1.x.x
+else
+HARDWARE_DIR = ../ArduinoAddons/Arduino_0.xx
 endif
-
-# Be sure to regenerate speed_lookuptable.h with create_speed_lookuptable.py
-# if you are setting this to something other than 16MHz
-F_CPU = 16000000
-
-UPLOAD_RATE = 115200
-AVRDUDE_PROGRAMMER = arduino
-PORT = /dev/arduino
+endif
+HARDWARE_SRC = $(HARDWARE_DIR)/$(HARDWARE_VARIANT)/cores/arduino
 
 TARGET = $(notdir $(CURDIR))
 
@@ -76,25 +197,55 @@ TARGET = $(notdir $(CURDIR))
 # directory is added here
 
 VPATH = .
-VPATH += applet
+VPATH += $(BUILD_DIR)
 VPATH += $(HARDWARE_SRC)
-VPATH += $(ARDUINO)
-VPATH += $(INSTALL_DIR)/libraries/LiquidCrystal
-
-############################################################################
-# Below here nothing should be changed...
-
-AVR_TOOLS_PATH = 
-SRC =  pins_arduino.c wiring.c \
+ifeq ($(HARDWARE_VARIANT), arduino)
+VPATH += $(ARDUINO_INSTALL_DIR)/libraries/LiquidCrystal
+VPATH += $(ARDUINO_INSTALL_DIR)/libraries/SPI
+ifeq ($(LIQUID_TWI2), 1)
+VPATH += $(ARDUINO_INSTALL_DIR)/libraries/Wire
+VPATH += $(ARDUINO_INSTALL_DIR)/libraries/Wire/utility
+VPATH += $(ARDUINO_INSTALL_DIR)/libraries/LiquidTWI2
+endif
+else
+VPATH += $(HARDWARE_DIR)/libraries/LiquidCrystal
+VPATH += $(HARDWARE_DIR)/libraries/SPI
+ifeq ($(LIQUID_TWI2), 1)
+VPATH += $(HARDWARE_DIR)/libraries/Wire
+VPATH += $(HARDWARE_DIR)/libraries/Wire/utility
+VPATH += $(HARDWARE_DIR)/libraries/LiquidTWI2
+endif
+endif
+ifeq ($(HARDWARE_VARIANT), arduino)
+HARDWARE_SUB_VARIANT ?= mega
+VPATH += $(ARDUINO_INSTALL_DIR)/hardware/arduino/variants/$(HARDWARE_SUB_VARIANT)
+else
+HARDWARE_SUB_VARIANT ?= standard
+VPATH += $(HARDWARE_DIR)/$(HARDWARE_VARIANT)/variants/$(HARDWARE_SUB_VARIANT)
+endif
+SRC = wiring.c \
 	wiring_analog.c wiring_digital.c \
 	wiring_pulse.c \
 	wiring_shift.c WInterrupts.c
-CXXSRC = WMath.cpp WString.cpp Print.cpp \
-	Marlin.cpp MarlinSerial.cpp Sd2Card.cpp SdBaseFile.cpp \
-	SdFatUtil.cpp SdFile.cpp SdVolume.cpp motion_control.cpp \
-	planner.cpp stepper.cpp temperature.cpp cardreader.cpp
-#CXXSRC += LiquidCrystal.cpp ultralcd.cpp
-#CXXSRC += ultralcd.cpp
+CXXSRC = WMath.cpp WString.cpp Print.cpp Marlin_main.cpp	\
+	MarlinSerial.cpp Sd2Card.cpp SdBaseFile.cpp SdFatUtil.cpp	\
+	SdFile.cpp SdVolume.cpp motion_control.cpp planner.cpp		\
+	stepper.cpp temperature.cpp cardreader.cpp ConfigurationStore.cpp \
+	watchdog.cpp SPI.cpp Servo.cpp Tone.cpp ultralcd.cpp
+ifeq ($(LIQUID_TWI2), 0)
+CXXSRC += LiquidCrystal.cpp
+else
+SRC += twi.c
+CXXSRC += Wire.cpp LiquidTWI2.cpp
+endif
+
+#Check for Arduino 1.0.0 or higher and use the correct sourcefiles for that version
+ifeq ($(shell [ $(ARDUINO_VERSION) -ge 100 ] && echo true), true)
+CXXSRC += main.cpp
+else
+SRC += pins_arduino.c main.c
+endif
+
 FORMAT = ihex
 
 # Name of this Makefile (used for "make depend").
@@ -107,42 +258,7 @@ DEBUG = stabs
 
 OPT = s
 
-# Place -D or -U options here
-CDEFS = -DF_CPU=$(F_CPU)
-CXXDEFS = -DF_CPU=$(F_CPU)
-
-# Add all the source directories as include directories too
-CINCS = ${patsubst %,-I%,${subst :, ,${VPATH}}}
-CXXINCS = ${patsubst %,-I%,${subst :, ,${VPATH}}}
-
-# Compiler flag to set the C Standard level.
-# c89   - "ANSI" C
-# gnu89 - c89 plus GCC extensions
-# c99   - ISO C99 standard (not yet fully implemented)
-# gnu99 - c99 plus GCC extensions
-#CSTANDARD = -std=gnu99
-CDEBUG = -g$(DEBUG)
-CWARN = -Wall -Wstrict-prototypes
-CTUNING = -funsigned-char -funsigned-bitfields -fpack-struct \
-	-fshort-enums -w -ffunction-sections -fdata-sections \
-	-DARDUINO=22
-ifneq (${HARDWARE_MOTHERBOARD},)
-CTUNING += -DMOTHERBOARD=${HARDWARE_MOTHERBOARD}
-endif
-#CEXTRA = -Wa,-adhlns=$(<:.c=.lst)
-
-CFLAGS = $(CDEBUG) $(CDEFS) $(CINCS) -O$(OPT) $(CWARN) $(CEXTRA) $(CTUNING)
-CXXFLAGS =         $(CDEFS) $(CINCS) -O$(OPT) -Wall    $(CEXTRA) $(CTUNING)
-#ASFLAGS = -Wa,-adhlns=$(<:.S=.lst),-gstabs 
-LDFLAGS = -lm
-
-
-# Programming support using avrdude. Settings and variables.
-AVRDUDE_PORT = $(PORT)
-AVRDUDE_WRITE_FLASH = -U flash:w:applet/$(TARGET).hex:i
-AVRDUDE_FLAGS = -D -C $(INSTALL_DIR)/hardware/tools/avrdude.conf \
-	-p $(MCU) -P $(AVRDUDE_PORT) -c $(AVRDUDE_PROGRAMMER) \
-	-b $(UPLOAD_RATE)
+DEFINES ?=
 
 # Program settings
 CC = $(AVR_TOOLS_PATH)avr-gcc
@@ -156,10 +272,59 @@ AVRDUDE = avrdude
 REMOVE = rm -f
 MV = mv -f
 
+# Place -D or -U options here
+CDEFS    = -DF_CPU=$(F_CPU) ${addprefix -D , $(DEFINES)}
+CXXDEFS  = $(CDEFS)
+
+ifeq ($(HARDWARE_VARIANT), Teensy)
+CDEFS  += -DUSB_SERIAL
+SRC    += usb.c pins_teensy.c
+CXXSRC += usb_api.cpp
+endif
+
+# Add all the source directories as include directories too
+CINCS = ${addprefix -I ,${VPATH}}
+CXXINCS = ${addprefix -I ,${VPATH}}
+
+# Compiler flag to set the C Standard level.
+# c89   - "ANSI" C
+# gnu89 - c89 plus GCC extensions
+# c99   - ISO C99 standard (not yet fully implemented)
+# gnu99 - c99 plus GCC extensions
+#CSTANDARD = -std=gnu99
+CDEBUG = -g$(DEBUG)
+CWARN = -Wall -Wstrict-prototypes
+CTUNING = -funsigned-char -funsigned-bitfields -fpack-struct \
+	-fshort-enums -w -ffunction-sections -fdata-sections \
+	-DARDUINO=$(ARDUINO_VERSION)
+ifneq ($(HARDWARE_MOTHERBOARD),)
+CTUNING += -DMOTHERBOARD=${HARDWARE_MOTHERBOARD}
+endif
+#CEXTRA = -Wa,-adhlns=$(<:.c=.lst)
+CEXTRA = -fno-use-cxa-atexit
+
+CFLAGS := $(CDEBUG) $(CDEFS) $(CINCS) -O$(OPT) $(CWARN) $(CEXTRA) $(CTUNING)
+CXXFLAGS :=         $(CDEFS) $(CINCS) -O$(OPT) -Wall    $(CEXTRA) $(CTUNING)
+#ASFLAGS = -Wa,-adhlns=$(<:.S=.lst),-gstabs
+LDFLAGS = -lm
+
+
+# Programming support using avrdude. Settings and variables.
+AVRDUDE_PORT = $(UPLOAD_PORT)
+AVRDUDE_WRITE_FLASH = -U flash:w:$(BUILD_DIR)/$(TARGET).hex:i
+ifeq ($(shell uname -s), Linux)
+AVRDUDE_CONF = $(ARDUINO_INSTALL_DIR)/hardware/tools/avrdude.conf
+else
+AVRDUDE_CONF = $(ARDUINO_INSTALL_DIR)/hardware/tools/avr/etc/avrdude.conf
+endif
+AVRDUDE_FLAGS = -D -C $(AVRDUDE_CONF) \
+	-p $(MCU) -P $(AVRDUDE_PORT) -c $(AVRDUDE_PROGRAMMER) \
+	-b $(UPLOAD_RATE)
+
 # Define all object files.
-OBJ = ${patsubst %.c, applet/%.o, ${SRC}}
-OBJ += ${patsubst %.cpp, applet/%.o, ${CXXSRC}}
-OBJ += ${patsubst %.S, applet/%.o, ${ASRC}}
+OBJ = ${patsubst %.c, $(BUILD_DIR)/%.o, ${SRC}}
+OBJ += ${patsubst %.cpp, $(BUILD_DIR)/%.o, ${CXXSRC}}
+OBJ += ${patsubst %.S, $(BUILD_DIR)/%.o, ${ASRC}}
 
 # Define all listing files.
 LST = $(ASRC:.S=.lst) $(CXXSRC:.cpp=.lst) $(SRC:.c=.lst)
@@ -170,55 +335,50 @@ ALL_CFLAGS = -mmcu=$(MCU) -I. $(CFLAGS)
 ALL_CXXFLAGS = -mmcu=$(MCU) $(CXXFLAGS)
 ALL_ASFLAGS = -mmcu=$(MCU) -x assembler-with-cpp $(ASFLAGS)
 
+# set V=1 (eg, "make V=1") to print the full commands etc.
+ifneq ($V,1)
+ Pecho=@echo
+ P=@
+else
+ Pecho=@:
+ P=
+endif
 
 # Default target.
 all: sizeafter
 
-build: applet elf hex 
+build: $(BUILD_DIR) elf hex
 
 # Creates the object directory
-applet: 
-	@mkdir -p applet
+$(BUILD_DIR):
+	$P mkdir -p $(BUILD_DIR)
 
-# the .cpp for Marlin depends on the .pde
-#applet/$(TARGET).cpp: $(TARGET).pde
-# ..and the .o depends from the .cpp
-#applet/%.o: applet/%.cpp
+elf: $(BUILD_DIR)/$(TARGET).elf
+hex: $(BUILD_DIR)/$(TARGET).hex
+eep: $(BUILD_DIR)/$(TARGET).eep
+lss: $(BUILD_DIR)/$(TARGET).lss
+sym: $(BUILD_DIR)/$(TARGET).sym
 
-applet/%.cpp: %.pde
-# Here is the "preprocessing".
-# It creates a .cpp file based with the same name as the .pde file.
-# On top of the new .cpp file comes the WProgram.h header.
-	@echo "  WR    $@"
-	@echo '#include "WProgram.h"' > $@
-	@echo '#include "$<"' >>$@
-	@echo '#include "$(ARDUINO)/main.cpp"' >> $@
-
-elf: applet/$(TARGET).elf
-hex: applet/$(TARGET).hex
-eep: applet/$(TARGET).eep
-lss: applet/$(TARGET).lss 
-sym: applet/$(TARGET).sym
-
-# Program the device.  
+# Program the device.
 # Do not try to reset an arduino if it's not one
-upload: applet/$(TARGET).hex
+upload: $(BUILD_DIR)/$(TARGET).hex
 ifeq (${AVRDUDE_PROGRAMMER}, arduino)
-	stty hup < $(PORT); true
+	stty hup < $(UPLOAD_PORT); true
 endif
 	$(AVRDUDE) $(AVRDUDE_FLAGS) $(AVRDUDE_WRITE_FLASH)
 ifeq (${AVRDUDE_PROGRAMMER}, arduino)
-	stty -hup < $(PORT); true
+	stty -hup < $(UPLOAD_PORT); true
 endif
 
 	# Display size of file.
-HEXSIZE = $(SIZE) --target=$(FORMAT) applet/$(TARGET).hex
-ELFSIZE = $(SIZE)  applet/$(TARGET).elf
+HEXSIZE = $(SIZE) --target=$(FORMAT) $(BUILD_DIR)/$(TARGET).hex
+ELFSIZE = $(SIZE) --mcu=$(MCU) -C $(BUILD_DIR)/$(TARGET).elf; \
+          $(SIZE)  $(BUILD_DIR)/$(TARGET).elf
 sizebefore:
-	@if [ -f applet/$(TARGET).elf ]; then echo; echo $(MSG_SIZE_BEFORE); $(HEXSIZE); echo; fi
+	$P if [ -f $(BUILD_DIR)/$(TARGET).elf ]; then echo; echo $(MSG_SIZE_BEFORE); $(HEXSIZE); echo; fi
 
 sizeafter: build
-	@if [ -f applet/$(TARGET).elf ]; then echo; echo $(MSG_SIZE_AFTER); $(ELFSIZE); echo; fi
+	$P if [ -f $(BUILD_DIR)/$(TARGET).elf ]; then echo; echo $(MSG_SIZE_AFTER); $(ELFSIZE); echo; fi
 
 
 # Convert ELF to COFF for use in debugging / simulating in AVR Studio or VMLAB.
@@ -226,23 +386,23 @@ COFFCONVERT=$(OBJCOPY) --debugging \
 	--change-section-address .data-0x800000 \
 	--change-section-address .bss-0x800000 \
 	--change-section-address .noinit-0x800000 \
-	--change-section-address .eeprom-0x810000 
+	--change-section-address .eeprom-0x810000
 
 
-coff: applet/$(TARGET).elf
-	$(COFFCONVERT) -O coff-avr applet/$(TARGET).elf $(TARGET).cof
+coff: $(BUILD_DIR)/$(TARGET).elf
+	$(COFFCONVERT) -O coff-avr $(BUILD_DIR)/$(TARGET).elf $(TARGET).cof
 
 
 extcoff: $(TARGET).elf
-	$(COFFCONVERT) -O coff-ext-avr applet/$(TARGET).elf $(TARGET).cof
+	$(COFFCONVERT) -O coff-ext-avr $(BUILD_DIR)/$(TARGET).elf $(TARGET).cof
 
 
 .SUFFIXES: .elf .hex .eep .lss .sym
 .PRECIOUS: .o
 
 .elf.hex:
-	@echo "  COPY  $@"
-	@$(OBJCOPY) -O $(FORMAT) -R .eeprom $< $@
+	$(Pecho) "  COPY  $@"
+	$P $(OBJCOPY) -O $(FORMAT) -R .eeprom $< $@
 
 .elf.eep:
 	-$(OBJCOPY) -j .eeprom --set-section-flags=.eeprom="alloc,load" \
@@ -257,38 +417,34 @@ extcoff: $(TARGET).elf
 	$(NM) -n $< > $@
 
 	# Link: create ELF output file from library.
-applet/$(TARGET).elf: applet/$(TARGET).cpp applet/core.a Configuration.h
-	@echo "  CXX   $@"
-	@$(CC) $(ALL_CXXFLAGS) -Wl,--gc-sections -o $@ applet/$(TARGET).cpp -L. applet/core.a $(LDFLAGS)
+$(BUILD_DIR)/$(TARGET).elf: $(OBJ) Configuration.h
+	$(Pecho) "  CXX   $@"
+	$P $(CC) $(ALL_CXXFLAGS) -Wl,--gc-sections -o $@ -L. $(OBJ) $(LDFLAGS)
 
-applet/core.a: $(OBJ)
-	@for i in $(OBJ); do echo "  AR    $$i"; $(AR) rcs applet/core.a $$i; done
+$(BUILD_DIR)/%.o: %.c Configuration.h Configuration_adv.h $(MAKEFILE)
+	$(Pecho) "  CC    $<"
+	$P $(CC) -MMD -c $(ALL_CFLAGS) $< -o $@
 
-applet/%.o: %.c
-	@echo "  CC    $@"
-	@$(CC) -MMD -c $(ALL_CFLAGS) $< -o $@
+$(BUILD_DIR)/%.o: $(BUILD_DIR)/%.cpp Configuration.h Configuration_adv.h $(MAKEFILE)
+	$(Pecho) "  CXX   $<"
+	$P $(CXX) -MMD -c $(ALL_CXXFLAGS) $< -o $@
 
-applet/%.o: %.cpp
-	@echo "  CXX   $@"
-	@$(CXX) -MMD -c $(ALL_CXXFLAGS) $< -o $@
-
-# special rule for autogenerated files...
-applet/%.o: applet/%.cpp
-	@echo "  CXX   $@"
-	@$(CXX) -MMD -c $(ALL_CXXFLAGS) $< -o $@
+$(BUILD_DIR)/%.o: %.cpp Configuration.h Configuration_adv.h $(MAKEFILE)
+	$(Pecho) "  CXX   $<"
+	$P $(CXX) -MMD -c $(ALL_CXXFLAGS) $< -o $@
 
 
 # Target: clean project.
 clean:
-	@echo "  RM    applet/*"
-	@$(REMOVE) applet/$(TARGET).hex applet/$(TARGET).eep applet/$(TARGET).cof applet/$(TARGET).elf \
-		applet/$(TARGET).map applet/$(TARGET).sym applet/$(TARGET).lss applet/$(TARGET).cpp applet/core.a \
+	$(Pecho) "  RM    $(BUILD_DIR)/*"
+	$P $(REMOVE) $(BUILD_DIR)/$(TARGET).hex $(BUILD_DIR)/$(TARGET).eep $(BUILD_DIR)/$(TARGET).cof $(BUILD_DIR)/$(TARGET).elf \
+		$(BUILD_DIR)/$(TARGET).map $(BUILD_DIR)/$(TARGET).sym $(BUILD_DIR)/$(TARGET).lss $(BUILD_DIR)/$(TARGET).cpp \
 		$(OBJ) $(LST) $(SRC:.c=.s) $(SRC:.c=.d) $(CXXSRC:.cpp=.s) $(CXXSRC:.cpp=.d)
-	@echo "  RMDIR applet/"
-	@rm -rf applet
+	$(Pecho) "  RMDIR $(BUILD_DIR)/"
+	$P rm -rf $(BUILD_DIR)
 
 
-.PHONY:	all build elf hex eep lss sym program coff extcoff clean depend applet_files sizebefore sizeafter
+.PHONY:	all build elf hex eep lss sym program coff extcoff clean depend sizebefore sizeafter
 
 # Automaticaly include the dependency files created by gcc
--include ${wildcard applet/*.d}
+-include ${wildcard $(BUILD_DIR)/*.d}
